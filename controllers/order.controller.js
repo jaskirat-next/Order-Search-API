@@ -37,45 +37,37 @@ export const searchOrder = async (req, res) => {
                     ]
                 }
             },
-
             {
-                $project: {
-                    order_unique_id: 1,
-                    customer_name: 1,
-                    total_amount: 1,
-                    createdAt: 1
-                }
-            },
-            { $skip: skip },
-            { $limit: parseInt(limit) }
-
-        ])
-
-        const totalResults = await Order.aggregate([
-            {
-                $addFields: {
-                    customer_name: { $concat: ["$first_name", " ", "$last_name"] }
-                }
-            },
-            {
-                $match: {
-                    $or: [
-                        { order_unique_id: { $regex: search, $options: "i" } },
-                        { customer_name: { $regex: search, $options: "i" } }
+                $facet: {
+                    metadata: [
+                        { $count: "count" }
+                    ],
+                    data: [
+                        {
+                            $project: {
+                                order_unique_id: 1,
+                                customer_name: 1,
+                                total_amount: 1,
+                                createdAt: 1
+                            }
+                        },
+                        { $skip: skip },
+                        { $limit: parseInt(limit) }
                     ]
                 }
             },
-            { $count: "count" }
-        ]);
 
 
-            res.status(200).json({
-                list,
-                limit,
-                skip,
-                totalResults: totalResults[0]?.count || 0,
 
-            })
+        ])
+
+        res.status(200).json({
+            list,
+            limit,
+            skip,
+            totalResults: list[0]?.metadata[0]?.count || 0,
+
+        })
     } catch (error) {
         console.error(error)
     }
